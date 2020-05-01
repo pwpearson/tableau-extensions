@@ -17,7 +17,7 @@
                 showChooseSheetDialog();
             }
 */
-            const wsName = 'Accounts by Avg Opportunity Probability';
+            const wsName = 'Opportunities';
 
             loadSelectedMarks(wsName);
 /*
@@ -27,7 +27,6 @@
               $('#data_table_wrapper').append(button);
             });
 */
-            initializeButtons();
         });
     });
 
@@ -47,17 +46,17 @@
             unregisterEventHandlerFunction();
         }
 
+        $('#selected_mark_opportunity').empty();
+        $('#data_table_wrapper').empty();
+
         // Get the worksheet object we want to get the selected marks for
         const worksheet = getSelectedSheet(worksheetName);
-
-        // Set our title to an appropriate value
-        $('#selected_marks_title').text(worksheet.name);
 
         // Call to get the selected marks for our sheet
         worksheet.getSelectedMarksAsync().then(function(marks) {
             // Get the first DataTable for our selected marks (usually there is just one)
             const worksheetData = marks.data[0];
-
+/*
             // Map our data into the format which the data table component expects it
             const data = worksheetData.data.map(function(row, index) {
                 const rowData = row.map(function(cell) {
@@ -72,9 +71,42 @@
                     title: column.fieldName
                 };
             });
+*/
 
-            // Populate the data table with the rows and columns we just pulled out
-            populateDataTable(data, columns);
+            // get opportunity id from active mark
+            const opportunityIdColumn = worksheetData.columns.find(element => element.fieldName == 'ID');
+            const opportunityId = worksheetData.data[0][opportunityIdColumn.index];
+
+            $('#selected_mark_opportunity').text(opportunityId.value);
+
+            console.log('Opportunity ID: ' + opportunityId.value);
+
+            getOpportunityDetails(opportunityId);
+
+
+/*
+            //get underlying dataset
+            worksheet.getUnderlyingDataAsync().then(dataTable => {
+
+              const data = dataTable.data.map(function(row, index) {
+                const rowData = row.map(function(cell) {
+                  return cell.formattedValue;
+                })
+
+                return rowData;
+              });
+
+              const columns = dataTable.columns.map(function(column) {
+                return {
+                  title: column.fieldName
+                };
+              });
+
+              // Populate the data table with the rows and columns we just pulled out
+              populateDataTable(data, columns);
+
+            });
+*/
         });
 
         // Add an event listener for the selection changed event on this sheet.
@@ -82,6 +114,29 @@
             // When the selection changes, reload the data
             loadSelectedMarks(worksheetName);
         });
+    }
+
+    function getOpportunityDetails(id) {
+      var myHeaders = new Headers();
+      myHeaders.append("Authorization", "Bearer 00D0b000000vzXw!AQYAQCs7I6Y7QAMP0t94TfqxdCb0vHoz9m07433eNExGuzLXwgq9xZrU1tydySpQhwTW5a.N7JYb7Hmfei4agTQ32_JjRnM4");
+
+      var requestOptions = {
+        method: 'GET',
+        headers: myHeaders,
+        redirect: 'follow'
+      };
+
+      const proxyurl = "https://cors-anywhere.herokuapp.com/";
+      const url = "https://sml-saas.my.salesforce.com/services/data/v48.0/query/?q=Select+Id,AccountId,Account.Name,Account.BillingAddress,CreatedDate,Account.Industry,Account.Phone,Amount,CloseDate,Contract_End_Date__c,Description,ForecastCategory,ForecastCategoryName,HasOpenActivity,HasOpportunityLineItem,HasOverdueTask,IsClosed,IsWon,LeadSource,Name,NextStep,Probability,StageName,Type+FROM+Opportunity+Where+Id='" + id.value + "'";
+      console.log(url);
+      fetch(proxyurl + url, requestOptions)
+        .then(response => response.json())
+        .then(result => {
+          console.log(result);
+          $('#data_table_wrapper').text(JSON.stringify(result, null, 2));
+        })
+        .catch(error => console.log('error', error));
+
     }
 
     function populateDataTable(data, columns) {
@@ -128,10 +183,6 @@
             // If we didn't get any rows back, there must be no marks selected
             $('#no_data_message').css('display', 'inline');
         }
-    }
-
-    function initializeButtons() {
-        $('#reset_filters_button').click(resetFilters);
     }
 
     function getSelectedSheet(worksheetName) {
