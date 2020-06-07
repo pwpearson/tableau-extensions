@@ -116,20 +116,74 @@
         });
     }
 
-    function getOpportunityDetails(id) {
+    const accessTokenUrl = `https://login.salesforce.com/services/oauth2/token`;
+
+    const username = `rick.pearson@springml.dataload`;
+    const password = `j51Ui9MWGnl1Kwu5%o#8`;
+    const securityToken = `RsqZxY0F6nR7T4aoBoLOCt4HF`;
+    const clientId = `3MVG9dZJodJWITSuZ3nLZQfWxRguTTFzK16QIpJGUnkaFPISbBZ6u9ed6aFuT6v4g0mu9iR9PrfsIwFZLpMwG`;
+    const clientSecret = `9AD38B5C220C11055D41567260A9B51BB5FEE907B4721EB78AEA1259F63E62F8`;
+    const bearer = token => `Bearer ${token}`;
+
+    const corsProxy = `https://sfdc-cors.herokuapp.com/`;
+    const appBaseUrl = `https://sml-saas.my.salesforce.com`;
+    const queryResPath = query => `/services/data/v48.0/query?q=${query}`;
+    const query = id => `Select Id,AccountId,Account.Name,Account.BillingAddress,CreatedDate,Account.Industry,Account.Phone,Amount,CloseDate,Contract_End_Date__c,Description,ForecastCategory,ForecastCategoryName,HasOpenActivity,HasOpportunityLineItem,HasOverdueTask,IsClosed,IsWon,LeadSource,Name,NextStep,Probability,StageName,Type FROM Opportunity Where Id='${id}'`;
+
+    let bearerToken = '00D0b000000vzXw!AQYAQJ2UCHPNlVF7fNG0Bvm0u5wvmKOuidHGZgPWG6jl5DJHeL5g0xmaNMqmZrqMPVNCDASEDLZ13ax4PHxv_reBjJ7MPKfu';
+
+    function getBearerToken() {
       var myHeaders = new Headers();
-      myHeaders.append("Authorization", "Bearer 00D0b000000vzXw!AQYAQCs7I6Y7QAMP0t94TfqxdCb0vHoz9m07433eNExGuzLXwgq9xZrU1tydySpQhwTW5a.N7JYb7Hmfei4agTQ32_JjRnM4");
+      myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+      myHeaders.append("Cookie", "BrowserId=B28g30UTEeqh1xv8NedS5A");
+
+      var urlencoded = new URLSearchParams();
+      urlencoded.append("grant_type", "password");
+      urlencoded.append("username", "rick.pearson@springml.dataload");
+      urlencoded.append("password", "j51Ui9MWGnl1Kwu5%o#8RsqZxY0F6nR7T4aoBoLOCt4HF");
+      urlencoded.append("client_id", "3MVG9dZJodJWITSuZ3nLZQfWxRguTTFzK16QIpJGUnkaFPISbBZ6u9ed6aFuT6v4g0mu9iR9PrfsIwFZLpMwG");
+      urlencoded.append("client_secret", "9AD38B5C220C11055D41567260A9B51BB5FEE907B4721EB78AEA1259F63E62F8");
+
+      var requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+        body: urlencoded,
+        redirect: 'follow'
+//        mode: 'no-cors'
+      };
+
+      fetch("https://sfdc-cors.herokuapp.com/services/oauth2/token", requestOptions)
+        .then(response => response.text())
+        .then(result => console.log("Bearer Result: " + result))
+        .catch(error => console.log('error', error));
+
+    }
+
+    function getOpportunityDetails(id) {
+
+      //if(!bearerToken)
+      //bearerToken = getBearerToken();
+        console.log("Bearer: " + getBearerToken());
+    }
+
+    function none(id) {
+      var headers = new Headers();
+      headers.append("Authorization", bearer(bearerToken));
 
       var requestOptions = {
         method: 'GET',
-        headers: myHeaders,
+        headers: headers,
         redirect: 'follow'
       };
 
-      const proxyurl = "https://cors-anywhere.herokuapp.com/";
-      const url = "https://sml-saas.my.salesforce.com/services/data/v48.0/query/?q=Select+Id,AccountId,Account.Name,Account.BillingAddress,CreatedDate,Account.Industry,Account.Phone,Amount,CloseDate,Contract_End_Date__c,Description,ForecastCategory,ForecastCategoryName,HasOpenActivity,HasOpportunityLineItem,HasOverdueTask,IsClosed,IsWon,LeadSource,Name,NextStep,Probability,StageName,Type+FROM+Opportunity+Where+Id='" + id.value + "'";
+      /* to fix the CORS issue; goto SF->search for 'CORS'; add your domain;
+       * see https://help.salesforce.com/articleView?id=extend_code_cors.htm&type=5
+       * orgiginally I just used a cors proxy;
+       * see https://stackoverflow.com/questions/43871637/no-access-control-allow-origin-header-is-present-on-the-requested-resource-whe
+       */
+      const url = appBaseUrl + queryResPath(encodeURIComponent(query(id.value)));
       console.log(url);
-      fetch(proxyurl + url, requestOptions)
+      fetch(url, requestOptions)
         .then(response => response.json())
         .then(result => {
           console.log(result);
